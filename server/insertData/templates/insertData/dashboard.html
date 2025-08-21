@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <!-- <meta http-equiv="refresh" content="5"> -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Processing Dashboard</title>
+    <!-- Load Tailwind CSS first -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
+    <!-- Custom Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                                     function connectWebSocket() {
+                        try {
+                            if (socket && (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)) {
+                                console.log('WebSocket already connected or connecting');
+                                return;
+                            }
+                    
+                            socket = new WebSocket(`ws://${window.location.host}/ws/dashboard/`);
+                            
+                            socket.onopen = function(e) {
+                                console.log('WebSocket connected');
+                                document.getElementById('lastUpdate').textContent = `Connected: ${moment().format('HH:mm:ss')}`;
+                            };
+                    
+                            socket.onmessage = function(e) {
+                                try {
+                                    const data = JSON.parse(e.data);
+                                    if (data.action === 'refresh') {
+                                        updateDashboard();
+                                        lastUpdateTime = new Date();
+                                        document.getElementById('lastUpdate').textContent = 
+                                            `Last Update: ${moment(lastUpdateTime).format('HH:mm:ss')}`;
+                                    } else if (data.action === 'start_processing') {
+                                        addActivity(`Processing: ${data.employee_name}`, 'processing');
+                                        currentEmployeeId = data.employee_id;
+                                        currentEmployeeStartTime = moment();
+                                    } else if (data.action === 'complete_processing') {
+                                        markCompleted(data.employee_id, data.employee_name);
+                                    }
+                                } catch (error) {
+                                    console.error('Error processing message:', error);
+                                }
+                            };
+                    
+                            socket.onclose = function(e) {
+                                console.log('WebSocket disconnected. Reconnecting in 5 seconds...');
+                                setTimeout(connectWebSocket, 5000);
+                            };
+                    
+                            socket.onerror = function(error) {
+                                console.error('WebSocket error:', error);
+                            };
+                        } catch (error) {
+                            console.error('Error setting up WebSocket:', error);
+                            setTimeout(connectWebSocket, 5000);
+                        }
+                    }                    function connectWebSocket() {
+                        try {
+                            if (socket && (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)) {
+                                console.log('WebSocket already connected or connecting');
+                                return;
+                            }
+                    
+                            socket = new WebSocket(`ws://${window.location.host}/ws/dashboard/`);
+                            
+                            socket.onopen = function(e) {
+                                console.log('WebSocket connected');
+                                document.getElementById('lastUpdate').textContent = `Connected: ${moment().format('HH:mm:ss')}`;
+                            };
+                    
+                            socket.onmessage = function(e) {
+                                try {
+                                    const data = JSON.parse(e.data);
+                                    if (data.action === 'refresh') {
+                                        updateDashboard();
+                                        lastUpdateTime = new Date();
+                                        document.getElementById('lastUpdate').textContent = 
+                                            `Last Update: ${moment(lastUpdateTime).format('HH:mm:ss')}`;
+                                    } else if (data.action === 'start_processing') {
+                                        addActivity(`Processing: ${data.employee_name}`, 'processing');
+                                        currentEmployeeId = data.employee_id;
+                                        currentEmployeeStartTime = moment();
+                                    } else if (data.action === 'complete_processing') {
+                                        markCompleted(data.employee_id, data.employee_name);
+                                    }
+                                } catch (error) {
+                                    console.error('Error processing message:', error);
+                                }
+                            };
+                    
+                            socket.onclose = function(e) {
+                                console.log('WebSocket disconnected. Reconnecting in 5 seconds...');
+                                setTimeout(connectWebSocket, 5000);
+                            };
+                    
+                            socket.onerror = function(error) {
+                                console.error('WebSocket error:', error);
+                            };
+                        } catch (error) {
+                            console.error('Error setting up WebSocket:', error);
+                            setTimeout(connectWebSocket, 5000);
+                        }
+                    }   colors: {
+                        primary: '#4e73df',
+                        success: '#1cc88a',
+                        warning: '#f6c23e',
+                        dark: '#1a1c23',
+                        'dark-card': '#252836'
+                    }
+                }
+            },
+            plugins: [],
+        }
+    </script>
+    <!-- Ensure colors work with opacity modifiers -->
+    <style>
+        :root {
+            --color-primary: 78, 115, 223;
+            --color-success: 28, 200, 138;
+            --color-warning: 246, 194, 62;
+            --color-dark: 26, 28, 35;
+            --color-dark-card: 37, 40, 54;
+        }
+        .bg-primary { background-color: rgb(var(--color-primary)); }
+        .bg-success { background-color: rgb(var(--color-success)); }
+        .bg-warning { background-color: rgb(var(--color-warning)); }
+        .bg-dark { background-color: rgb(var(--color-dark)); }
+        .bg-dark-card { background-color: rgb(var(--color-dark-card)); }
+        .text-primary { color: rgb(var(--color-primary)); }
+        .text-success { color: rgb(var(--color-success)); }
+        .border-primary { border-color: rgb(var(--color-primary)); }
+        .border-success { border-color: rgb(var(--color-success)); }
+        .hover\:bg-primary\/90:hover { background-color: rgb(var(--color-primary) / 0.9); }
+        .hover\:bg-success\/90:hover { background-color: rgb(var(--color-success) / 0.9); }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4e73df',
+                        success: '#1cc88a',
+                        warning: '#f6c23e',
+                        dark: '#1a1c23',
+                        'dark-card': '#252836'
+                    },
+                    backgroundColor: {
+                        'dark': '#1a1c23',
+                        'dark-card': '#252836',
+                        'primary': '#4e73df',
+                        'success': '#1cc88a',
+                        'warning': '#f6c23e'
+                    },
+                    textColor: {
+                        'primary': '#4e73df',
+                        'success': '#1cc88a'
+                    },
+                    borderColor: {
+                        'primary': '#4e73df',
+                        'success': '#1cc88a'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Fallback styles */
+        .bg-primary { background-color: #4e73df; }
+        .bg-success { background-color: #1cc88a; }
+        .bg-warning { background-color: #f6c23e; }
+        .bg-dark { background-color: #1a1c23; }
+        .bg-dark-card { background-color: #252836; }
+        .text-primary { color: #4e73df; }
+        .text-success { color: #1cc88a; }
+        .border-primary { border-color: #4e73df; }
+        .border-success { border-color: #1cc88a; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.2.0/fonts/remixicon.css" rel="stylesheet">
+</head>
+<body class="min-h-full bg-gray-50 dark:bg-dark transition-colors duration-300">
+    <!-- Navbar -->
+    <nav class="bg-white dark:bg-dark-card shadow-sm transition-colors duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <i class="ri-team-fill text-2xl text-primary mr-2"></i>
+                    <span class="text-xl font-semibold dark:text-white">Employee Processing Dashboard</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="darkModeToggle" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark transition-colors">
+                        <i class="ri-moon-fill text-xl dark:text-white"></i>
+                    </button>
+                    <span id="lastUpdate" class="bg-primary text-white px-3 py-1 rounded-full text-sm">Last Update: Just now</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Status Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Total Employees Card -->
+            <div class="bg-primary rounded-xl shadow-sm transform hover:-translate-y-1 transition-transform duration-300">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="ri-team-fill text-4xl text-white opacity-70"></i>
+                        </div>
+                        <div class="ml-auto text-right">
+                            <p class="text-white text-sm font-medium">Total Employees</p>
+                            <h2 id="totalCount" class="text-3xl font-bold text-white">-</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Completed Card -->
+            <div class="bg-success rounded-xl shadow-sm transform hover:-translate-y-1 transition-transform duration-300">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="ri-checkbox-circle-fill text-4xl text-white opacity-70"></i>
+                        </div>
+                        <div class="ml-auto text-right">
+                            <p class="text-white text-sm font-medium">Completed</p>
+                            <h2 id="completedCount" class="text-3xl font-bold text-white">-</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Card -->
+            <div class="bg-warning rounded-xl shadow-sm transform hover:-translate-y-1 transition-transform duration-300">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="ri-time-fill text-4xl text-gray-800 opacity-70"></i>
+                        </div>
+                        <div class="ml-auto text-right">
+                            <p class="text-gray-800 text-sm font-medium">Pending</p>
+                            <h2 id="pendingCount" class="text-3xl font-bold text-gray-800">-</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="bg-white dark:bg-dark-card rounded-xl shadow-sm mb-8 p-6">
+            <h3 class="text-lg font-semibold mb-4 dark:text-white">Overall Progress</h3>
+            <div class="h-6 bg-gray-200 rounded-full overflow-hidden">
+                <div id="progressBar" class="h-full bg-primary transition-all duration-500 text-center text-white text-sm leading-6" style="width: 0%">
+                    0%
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- Progress Chart -->
+            <div class="bg-white dark:bg-dark-card rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold mb-4 dark:text-white">Progress Chart</h3>
+                <div class="aspect-w-16 aspect-h-9">
+                    <canvas id="progressChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Current Employee -->
+            <div class="bg-white dark:bg-dark-card rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold mb-4 dark:text-white">Current Employee</h3>
+                <div id="currentEmployee" class="space-y-4">
+                    <p class="text-gray-500 dark:text-gray-400">Loading...</p>
+                </div>
+                <div class="mt-6 space-y-4">
+                    <h4 class="text-md font-semibold dark:text-white">Time Estimates</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="flex items-center space-x-2">
+                            <i class="ri-time-fill text-primary"></i>
+                            <span class="text-sm text-gray-600 dark:text-gray-300">Current Employee: 
+                                <span id="currentTimeEstimate" class="font-medium">~30 seconds</span>
+                            </span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <i class="ri-calendar-event-fill text-primary"></i>
+                            <span class="text-sm text-gray-600 dark:text-gray-300">Remaining Time: 
+                                <span id="totalTimeEstimate" class="font-medium">Calculating...</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="bg-white dark:bg-dark-card rounded-xl shadow-sm p-6">
+            <h3 class="text-lg font-semibold mb-4 dark:text-white">Recent Activity</h3>
+            <div id="recentActivity" class="space-y-3 max-h-96 overflow-y-auto">
+                <!-- Activity items will be added here -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Refresh Button -->
+    <button onclick="manualRefresh()" class="fixed bottom-6 right-6 w-12 h-12 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors group">
+        <i class="ri-refresh-line text-xl transition-transform group-hover:rotate-180"></i>
+        <span id="autoRefreshBadge" class="absolute -top-1 -right-1 px-2 py-0.5 text-xs rounded-full bg-success">ON</span>
+    </button>
+
+    <script>
+        let activityLog = [];
+        let progressChart;
+        let socket;
+        let lastUpdateTime = new Date();
+        
+        function connectWebSocket() {
+            // Create WebSocket connection
+            socket = new WebSocket(`ws://${window.location.host}/ws/dashboard/`);
+            
+            socket.onopen = function(e) {
+                console.log('WebSocket connected');
+            };
+
+            socket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                if (data.action === 'refresh') {
+                    updateDashboard();
+                    lastUpdateTime = new Date();
+                    document.getElementById('lastUpdate').textContent = `Last Update: ${moment(lastUpdateTime).format('HH:mm:ss')}`;
+                } else if (data.action === 'start_processing') {
+                    addActivity(`Processing: ${data.employee_name}`, 'processing');
+                    currentEmployeeId = data.employee_id;
+                    currentEmployeeStartTime = moment();
+                } else if (data.action === 'complete_processing') {
+                    markCompleted(data.employee_id, data.employee_name);
+                }
+            };
+
+            socket.onclose = function(e) {
+                console.log('WebSocket disconnected. Reconnecting in 5 seconds...');
+                setTimeout(connectWebSocket, 5000);
+            };
+        }
+
+        function animateCounter(elementId, finalValue) {
+            const element = document.getElementById(elementId);
+            const startValue = parseInt(element.textContent) || 0;
+            const duration = 1000;
+            const steps = 20;
+            const stepValue = (finalValue - startValue) / steps;
+            const stepDuration = duration / steps;
+            let currentStep = 0;
+
+            const timer = setInterval(() => {
+                currentStep++;
+                const currentValue = Math.round(startValue + (stepValue * currentStep));
+                element.textContent = currentValue;
+                
+                if (currentStep >= steps) {
+                    element.textContent = finalValue;
+                    clearInterval(timer);
+                }
+            }, stepDuration);
+        }
+
+        function updateDashboard() {
+            Promise.all([
+                // Fetch status
+                fetch('/api/status/').then(response => response.json()),
+                // Fetch current employee
+                fetch('/api/next-employee/').then(response => response.json())
+            ])
+            .then(([statusData, employeeData]) => {
+                // Update counts and progress
+                animateCounter('totalCount', statusData.total);
+                animateCounter('completedCount', statusData.completed);
+                animateCounter('pendingCount', statusData.pending);
+                    
+                const percentage = statusData.completion_percentage.toFixed(1);
+                const progressBar = document.getElementById('progressBar');
+                progressBar.style.width = `${percentage}%`;
+                progressBar.textContent = `${percentage}%`;
+
+                document.getElementById('lastUpdate').textContent = `Last Update: ${moment().format('HH:mm:ss')}`;
+
+                updateChart(statusData);
+                updateTimeEstimates(statusData.pending);
+
+                // Update current employee section
+                if (employeeData.id) {
+                    const employeeHtml = `
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                    <tr><td class="py-2 px-4 font-medium dark:text-white">Name</td><td class="py-2 px-4 dark:text-gray-300">${employeeData.fullName}</td></tr>
+                                    <tr><td class="py-2 px-4 font-medium dark:text-white">Phone</td><td class="py-2 px-4 dark:text-gray-300">${employeeData.phone}</td></tr>
+                                    <tr><td class="py-2 px-4 font-medium dark:text-white">School</td><td class="py-2 px-4 dark:text-gray-300">${employeeData.school}</td></tr>
+                                    <tr><td class="py-2 px-4 font-medium dark:text-white">Gender</td><td class="py-2 px-4 dark:text-gray-300">${employeeData.gender}</td></tr>
+                                    <tr><td class="py-2 px-4 font-medium dark:text-white">Class</td><td class="py-2 px-4 dark:text-gray-300">${employeeData.classLevel}</td></tr>
+                                    <tr><td class="py-2 px-4 font-medium dark:text-white">Registration</td><td class="py-2 px-4 dark:text-gray-300">${employeeData.registrationType}</td></tr>
+                                </tbody>
+                            </table>
+                            
+                        </div>`;
+                    document.getElementById('currentEmployee').innerHTML = employeeHtml;
+                    
+                    // Start tracking time for new employee
+                    if (!currentEmployeeStartTime || currentEmployeeId !== employeeData.id) {
+                        currentEmployeeStartTime = moment();
+                        currentEmployeeId = employeeData.id;
+                        if (currentEmployeeTimer) {
+                            clearInterval(currentEmployeeTimer);
+                        }
+                        currentEmployeeTimer = setInterval(updateCurrentEmployeeTime, 1000);
+                        addActivity(`Processing: ${employeeData.fullName}`);
+                    }
+                } else {
+                    document.getElementById('currentEmployee').innerHTML = '<p class="text-success dark:text-success/90">All employees processed!</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error updating dashboard:', error);
+                document.getElementById('currentEmployee').innerHTML = '<p class="text-gray-500 dark:text-gray-400">Error loading data</p>';
+            });
+        }
+
+        function updateChart(data) {
+            if (progressChart) {
+                progressChart.destroy();
+            }
+
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            progressChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completed', 'Pending'],
+                    datasets: [{
+                        data: [data.completed, data.pending],
+                        backgroundColor: ['#1cc88a', '#f6c23e'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    cutout: '75%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                color: document.documentElement.classList.contains('dark') ? '#fff' : '#333'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        let processingTimes = [];
+        let currentEmployeeStartTime = null;
+        let currentEmployeeTimer = null;
+
+        function updateTimeEstimates(pendingCount) {
+            // Calculate average processing time from actual completed tasks
+            const avgTime = processingTimes.length > 0 
+                ? processingTimes.reduce((a, b) => a + b, 0) / processingTimes.length 
+                : 30; // default 30 seconds if no data
+
+            const totalRemainingSeconds = pendingCount * avgTime;
+            const remainingTime = moment.duration(totalRemainingSeconds, 'seconds');
+            
+            let remainingTimeText = '';
+            if (remainingTime.asHours() >= 1) {
+                remainingTimeText = Math.ceil(remainingTime.asHours()) + ' hours';
+            } else if (remainingTime.asMinutes() >= 1) {
+                remainingTimeText = Math.ceil(remainingTime.asMinutes()) + ' minutes';
+            } else {
+                remainingTimeText = Math.ceil(remainingTime.asSeconds()) + ' seconds';
+            }
+            
+            const avgTimeText = processingTimes.length > 0 
+                ? ` (avg: ${Math.round(avgTime)}s per employee)` 
+                : '';
+            
+            document.getElementById('totalTimeEstimate').textContent = remainingTimeText + avgTimeText;
+
+            // Update current employee time if active
+            updateCurrentEmployeeTime();
+        }
+
+        function updateCurrentEmployeeTime() {
+            if (!currentEmployeeStartTime) return;
+            
+            const elapsedSeconds = moment().diff(currentEmployeeStartTime, 'seconds');
+            const estimatedTotal = processingTimes.length > 0 
+                ? Math.round(processingTimes.reduce((a, b) => a + b, 0) / processingTimes.length) 
+                : 30;
+            
+            const remainingSeconds = Math.max(0, estimatedTotal - elapsedSeconds);
+            const etaText = `${elapsedSeconds}s elapsed / ~${remainingSeconds}s remaining`;
+            document.getElementById('currentTimeEstimate').textContent = etaText;
+        }
+
+        function addActivity(message, status = 'processing') {
+            const now = moment();
+            const timeString = now.format('HH:mm:ss');
+            activityLog.unshift({ time: now, message, status });
+            
+            if (activityLog.length > 10) {
+                activityLog.pop();
+            }
+
+            updateActivityDisplay();
+        }
+
+        function updateActivityDisplay() {
+            const activityHtml = activityLog
+                .map(activity => `
+                    <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-dark/50 rounded-lg 
+                         border-l-4 ${activity.status === 'completed' ? 'border-success' : 'border-primary'} 
+                         transform hover:translate-x-1 transition-transform">
+                        <span class="text-xs text-gray-500">${activity.time.format('HH:mm:ss')}</span>
+                        <span class="text-sm dark:text-white">${activity.message}</span>
+                        ${activity.status === 'processing' ? 
+                            '<span class="ml-auto"><i class="ri-loader-4-line animate-spin text-primary"></i></span>' : 
+                            '<span class="ml-auto"><i class="ri-checkbox-circle-fill text-success"></i></span>'}
+                    </div>
+                `).join('');
+            document.getElementById('recentActivity').innerHTML = activityHtml;
+        }
+
+        function manualRefresh() {
+            updateDashboard();
+            
+            isAutoRefreshEnabled = !isAutoRefreshEnabled;
+            const badge = document.getElementById('autoRefreshBadge');
+            
+            if (isAutoRefreshEnabled) {
+                badge.textContent = 'ON';
+                badge.classList.remove('bg-red-500');
+                badge.classList.add('bg-success');
+                autoRefreshInterval = setInterval(updateDashboard, 500);
+            } else {
+                badge.textContent = 'OFF';
+                badge.classList.remove('bg-success');
+                badge.classList.add('bg-red-500');
+                clearInterval(autoRefreshInterval);
+            }
+        }
+
+        // Dark mode handling
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        darkModeToggle.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            darkModeToggle.innerHTML = isDarkMode ? '<i class="ri-sun-fill text-xl text-white"></i>' : '<i class="ri-moon-fill text-xl"></i>';
+            localStorage.setItem('darkMode', isDarkMode);
+            
+            if (progressChart) {
+                progressChart.options.plugins.legend.labels.color = isDarkMode ? '#fff' : '#333';
+                progressChart.update();
+            }
+        });
+
+        // Restore dark mode preference
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.documentElement.classList.add('dark');
+            darkModeToggle.innerHTML = '<i class="ri-sun-fill text-xl text-white"></i>';
+        }
+
+        let currentEmployeeId = null;
+
+        function markCompleted(employeeId, employeeName) {
+            if (!currentEmployeeStartTime || currentEmployeeId !== employeeId) return;
+
+            const processingTime = moment().diff(currentEmployeeStartTime, 'seconds');
+            processingTimes.push(processingTime);
+            
+            // Keep only last 10 processing times to maintain recent average
+            if (processingTimes.length > 10) {
+                processingTimes.shift();
+            }
+
+            fetch(`/api/mark-completed/${employeeId}/`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Find and update the processing activity to completed
+                    const processingActivityIndex = activityLog.findIndex(
+                        activity => activity.message.includes(employeeName) && activity.status === 'processing'
+                    );
+                    if (processingActivityIndex !== -1) {
+                        activityLog[processingActivityIndex].status = 'completed';
+                        updateActivityDisplay();
+                    }
+                    
+                    addActivity(`Completed: ${employeeName} (${processingTime}s)`, 'completed');
+                    currentEmployeeStartTime = null;
+                    currentEmployeeId = null;
+                    if (currentEmployeeTimer) {
+                        clearInterval(currentEmployeeTimer);
+                        currentEmployeeTimer = null;
+                    }
+                    updateDashboard();
+                }
+            });
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDashboard();
+            connectWebSocket();
+
+            // Fallback polling every 30 seconds in case WebSocket fails
+            setInterval(() => {
+                const now = new Date();
+                const timeSinceLastUpdate = now - lastUpdateTime;
+                if (timeSinceLastUpdate > 30000) { // If no updates for 30 seconds
+                    updateDashboard();
+                    lastUpdateTime = now;
+                }
+            }, 30000);
+        });
+    </script>
+</body>
+</html>
